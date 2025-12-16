@@ -183,12 +183,12 @@ function App() {
 
   async function searchTracks(query, limit) {
     if (!accessToken) {
-      console.error("searchTracks aborted: no accessToken available for request.");
+      console.error("searchTracks aborted: no accessToken available. Please log in to Spotify first.");
       return [];
     }
 
     try {
-      console.log("searchTracks: performing search for", query);
+      console.log("searchTracks: performing search for", query, "with token:", accessToken.substring(0, 10) + "...");
       const { data } = await axios.get("https://api.spotify.com/v1/search", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -200,11 +200,15 @@ function App() {
         },
       });
 
+      console.log("searchTracks success: found", data.tracks.items.length, "tracks");
       return data.tracks.items;
     } catch (error) {
       console.error("searchTracks axios error status:", error.response?.status);
       console.error("searchTracks axios error data:", error.response?.data);
-      console.error(error.message);
+      console.error("Error message:", error.message);
+      if (error.response?.status === 401) {
+        console.error("401 Unauthorized: Your Spotify token may have expired. Please log in again.");
+      }
       return [];
     }
   }
@@ -231,24 +235,8 @@ function App() {
     });
   }
 
-  useEffect(() => {
-    const authParameters = {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
-    };
-
-    fetch("https://accounts.spotify.com/api/token", authParameters)
-      .then((result) => result.json())
-      .then((data) => {
-        if (data && data.access_token) {
-          setAccessToken(data.access_token);
-        } else {
-          console.error("Failed to fetch client credentials token:", data);
-        }
-      })
-      .catch((err) => console.error("Token fetch error:", err));
-  }, []);
+  // Note: Client credentials flow is removed. Use OAuth login (handleLogin) to get user tokens for playlist creation and user data access.
+  // Client credentials tokens cannot access user-specific endpoints like /v1/me or playlist creation.
 
   useEffect(() => {
     if (window.location.hash) {
